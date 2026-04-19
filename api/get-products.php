@@ -1,7 +1,7 @@
 <?php
 require '../includes/db.php';
 
-header('Access-Control-Allow-Origin: http://localhost:3000');  // Sicherstellen, dass Cross-Origin-Anfragen erlaubt sind
+header('Access-Control-Allow-Origin: https://plant-shop-frontend.onrender.com');  // Sicherstellen, dass Cross-Origin-Anfragen erlaubt sind
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');

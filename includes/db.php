@@ -1,14 +1,23 @@
 <?php
-$servername = "localhost";
-$username = "root";
-$password = ""; // Assuming default XAMPP settings
-$dbname = "4_indoor_gardening"; // Updated to your database name
 
-// Create connection
-$conn = new mysqli($servername, $username, $password, $dbname);
+$host = getenv('DB_HOST');
+$dbname = getenv('DB_NAME');
+$user = getenv('DB_USER');
+$password = getenv('DB_PASSWORD');
+$port = getenv('DB_PORT') ?: "5432";
 
-// Check connection
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
+try {
+    $conn = new PDO(
+        "pgsql:host=$host;port=$port;dbname=$dbname",
+        $user,
+        $password
+    );
+
+    $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+} catch (PDOException $e) {
+    http_response_code(500);
+    die("Database connection failed: " . $e->getMessage());
 }
+
 ?>
