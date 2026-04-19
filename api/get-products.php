@@ -51,28 +51,17 @@ switch ($lang) {
         break;
 }
 
-// SQL-Abfrage ausführen
-$result = $conn->query($sql);
+try {
+    $stmt = $conn->query($sql);
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Ein leeres Array für die Produkte erstellen
-$products = [];
+    echo json_encode($products);
 
-// Überprüfen, ob die Abfrage Ergebnisse liefert
-if ($result->num_rows > 0) {
-    // Durch alle gefundenen Produkte iterieren und in das Array $products speichern
-    while ($row = $result->fetch_assoc()) {
-        // Alle Produktdaten in einem Array speichern
-        $products[] = [
-            'id' => $row['id'],
-            'name' => $row['name'],
-            'description' => $row['description'],
-            'price' => $row['price'],
-            'image_url' => $row['image_url'],
-            'category' => $row['category']
-        ];
-    }
+} catch (Exception $e) {
+    http_response_code(500);
+    echo json_encode([
+        "error" => "Database query failed",
+        "details" => $e->getMessage()
+    ]);
 }
-
-// Die Produkte als JSON zurückgeben
-echo json_encode($products);
 ?>
