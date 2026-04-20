@@ -5,22 +5,21 @@ RUN apt-get update && apt-get install -y \
     git unzip zip libpq-dev curl \
     && docker-php-ext-install pdo pdo_pgsql
 
-# Apache rewrite (for React routing / API clean URLs)
+# Apache rewrite
 RUN a2enmod rewrite
 
-# Set working directory
 WORKDIR /var/www/html
 
-# Install Composer FIRST
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy ONLY composer files first (better caching)
-COPY composer.json composer.lock ./
+# ✅ FIX: nur composer.json kopieren
+COPY composer.json ./
 
-# Install PHP dependencies (THIS is where PHPMailer gets installed)
+# Install dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Now copy the rest of your backend
+# Rest vom Projekt
 COPY . .
 
 # Permissions
