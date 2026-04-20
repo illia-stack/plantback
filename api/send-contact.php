@@ -1,5 +1,5 @@
 <?php
-
+require __DIR__ . '/../config/config.php';
 header('Content-Type: application/json');
 
 use PHPMailer\PHPMailer\PHPMailer;
@@ -72,11 +72,10 @@ try {
     $mail->AltBody = "Name: $name\nEmail: $email\nMessage: $message";
 
     $mail->send();
-
-    echo json_encode(["success" => false, "error" => "Invalid email"]);
+    echo json_encode(["success" => true]);
     exit;
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo "Mailer Error: " . $mail->ErrorInfo;
+    echo json_encode(["success" => false, "error" => $mail->ErrorInfo]);
 }
