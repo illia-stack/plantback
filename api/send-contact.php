@@ -25,25 +25,51 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $mail = new PHPMailer(true);
 
 try {
+    // -------------------------
+    // SMTP CONFIG (SendGrid)
+    // -------------------------
     $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com';
+    $mail->Host = 'smtp.sendgrid.net';
     $mail->SMTPAuth = true;
-    $mail->Username = getenv('SMTP_EMAIL');
-    $mail->Password = getenv('SMTP_PASSWORD');
-    $mail->SMTPSecure = 'tls';
+
+    // IMPORTANT: SendGrid fixed username is always "apikey"
+    $mail->Username = 'apikey';
+
+    // Your SendGrid API key
+    $mail->Password = getenv('SENDGRID_API_KEY');
+
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port = 587;
 
-    $mail->setFrom('illiashapshalov38@gmail.com', 'Contact Form');
+    // -------------------------
+    // EMAIL SETTINGS
+    // -------------------------
+
+    // MUST be a verified sender in SendGrid
+    $mail->setFrom('illiashapshalov38@gmail.com', 'Plant Shop');
+
     $mail->addAddress('illiashapshalov38@gmail.com');
+
+    // user reply goes to sender email
     $mail->addReplyTo($email, $name);
 
     $mail->isHTML(true);
     $mail->Subject = '[Contact Form] ' . $subject;
-    $mail->Body = "Name: $name<br>Email: $email<br><br>Message:<br>$message";
+
+    $mail->Body = "
+        <h3>New Contact Form Message</h3>
+        <p><b>Name:</b> {$name}</p>
+        <p><b>Email:</b> {$email}</p>
+        <p><b>Message:</b><br>{$message}</p>
+    ";
+
+    $mail->AltBody = "Name: $name\nEmail: $email\nMessage: $message";
 
     $mail->send();
+
     echo "Message sent successfully";
 
 } catch (Exception $e) {
-    echo "Mailer Error: {$mail->ErrorInfo}";
+    http_response_code(500);
+    echo "Mailer Error: " . $mail->ErrorInfo;
 }

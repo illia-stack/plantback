@@ -42,6 +42,10 @@ try {
 
                 $price = floatval($item->price);
 
+                if ($price <= 0) {
+                    throw new Exception("Invalid price");
+                }
+
                 // ✅ APPLY 5% DISCOUNT IF USER LOGGED IN
                 if ($user && isset($user->id)) {
                     $price = $price * 0.95;

@@ -1,5 +1,4 @@
 <?php
-// CORS headers
 header('Access-Control-Allow-Origin: https://plant-shop-frontend.onrender.com');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -7,23 +6,27 @@ header('Content-Type: application/json');
 
 // Handle OPTIONS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    header('HTTP/1.1 200 OK');
+    http_response_code(200);
     exit();
 }
 
-// Now load Composer and Stripe
 require_once __DIR__ . '/../vendor/autoload.php';
+
 use Dotenv\Dotenv;
 
-// Load env
-$dotenv = Dotenv::createImmutable(__DIR__ . '/../', '.env');
-$dotenv->load();
+// ✅ ONLY load .env if file exists (local dev)
+$envPath = __DIR__ . '/../.env';
 
-// Stripe key
-$stripeSecretKey = $_ENV['STRIPE_SECRET_KEY'] ?? '';
-if (!empty($_ENV['STRIPE_SECRET_KEY'])) {
-    \Stripe\Stripe::setApiKey($_ENV['STRIPE_SECRET_KEY']);
+if (file_exists($envPath)) {
+    $dotenv = Dotenv::createImmutable(__DIR__ . '/../');
+    $dotenv->load();
+}
+
+// ✅ Read from environment (Render provides this)
+$stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: ($_ENV['STRIPE_SECRET_KEY'] ?? null);
+
+if (!$stripeSecretKey) {
+    throw new Exception("Stripe secret key not found");
 }
 
 \Stripe\Stripe::setApiKey($stripeSecretKey);
-?>
