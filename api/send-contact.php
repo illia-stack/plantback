@@ -1,4 +1,7 @@
 <?php
+
+header('Content-Type: application/json');
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
@@ -18,9 +21,6 @@ if (!$name || !$email || !$message) {
     exit("All fields are required.");
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    exit("Invalid email.");
-}
 
 $mail = new PHPMailer(true);
 
@@ -36,7 +36,13 @@ try {
     $mail->Username = 'apikey';
 
     // Your SendGrid API key
-    $mail->Password = getenv('SENDGRID_API_KEY');
+    $apiKey = getenv('SENDGRID_API_KEY');
+
+    if (!$apiKey) {
+        die("Missing SENDGRID_API_KEY");
+    }
+
+    $mail->Password = $apiKey;
 
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port = 587;
@@ -67,7 +73,8 @@ try {
 
     $mail->send();
 
-    echo "Message sent successfully";
+    echo json_encode(["success" => false, "error" => "Invalid email"]);
+    exit;
 
 } catch (Exception $e) {
     http_response_code(500);

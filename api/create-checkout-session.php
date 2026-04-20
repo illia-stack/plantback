@@ -24,6 +24,8 @@ try {
         throw new Exception("Invalid JSON input");
     }
 
+    $lang = $data->language ?? 'en';
+
     if (!isset($data->cart)) {
         throw new Exception("Cart is missing");
     }
@@ -68,6 +70,7 @@ try {
         'payment_method_types' => ['card'],
         'line_items' => $line_items,
         'mode' => 'payment',
+        'locale' => $lang,
         'success_url' => 'https://plant-shop-frontend.onrender.com/success',
         'cancel_url' => 'https://plant-shop-frontend.onrender.com/cancel',
 
