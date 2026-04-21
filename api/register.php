@@ -7,16 +7,32 @@ header("Content-Type: application/json");
 
 $data = json_decode(file_get_contents("php://input"));
 
-$name = $data->name;
-$email = $data->email;
-$password = password_hash($data->password, PASSWORD_BCRYPT);
+$name = trim($data->name ?? '');
+$email = trim($data->email ?? '');
+$password = $data->password ?? '';
 
-$stmt = $conn->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
-$stmt->bind_param("sss", $name, $email, $password);
-
-if ($stmt->execute()) {
-    echo json_encode(["success" => true]);
-} else {
-    echo json_encode(["success" => false]);
+if (!$name || !$email || !$password) {
+    echo json_encode(["success" => false, "message" => "All fields required"]);
+    exit();
 }
-?>
+
+$hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+try {
+    $stmt = $conn->prepare("INSERT INTO users (name, email, password) VALUES (:name, :email, :password)");
+    $stmt->execute([
+        ':name' => $name,
+        ':email' => $email,
+        ':password' => $hashedPassword
+    ]);
+
+    echo json_encode(["success" => true]);
+
+} catch (PDOException $e) {
+    if ($e->getCode() == 23505) { // PostgreSQL unique violation
+        echo json_encode(["success" => false, "message" => "Email already exists"]);
+    } else {
+        http_response_code(500);
+        echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    }
+}

@@ -33,8 +33,7 @@ try {
         $sessionId = $session->id;
 
         // Retrieve full session with line items
-        $session = \Stripe\Checkout\Session::retrieve([
-            'id' => $sessionId,
+        $session = \Stripe\Checkout\Session::retrieve($sessionId, [
             'expand' => ['line_items']
         ]);
 

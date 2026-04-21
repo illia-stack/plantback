@@ -36,10 +36,11 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 // -------------------------
 // Form Data
 // -------------------------
-$name = trim($_POST['name'] ?? '');
-$email = trim($_POST['email'] ?? '');
-$subject = trim($_POST['subject'] ?? '');
-$message = trim($_POST['message'] ?? '');
+$data = json_decode(file_get_contents("php://input"), true);
+$name = trim($data['name'] ?? '');
+$email = trim($data['email'] ?? '');
+$subject = trim($data['subject'] ?? '');
+$message = trim($data['message'] ?? '');
 
 if (!$name || !$email || !$message) {
     echo json_encode(["success" => false, "error" => "All fields are required"]);
