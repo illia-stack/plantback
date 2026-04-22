@@ -1,5 +1,5 @@
 <?php
-header('Access-Control-Allow-Origin: https://plant-shop-frontend.onrender.com');
+header('Access-Control-Allow-Origin: https://plantfront.onrender.com');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Content-Type: application/json');
