@@ -71,8 +71,8 @@ try {
         'line_items' => $line_items,
         'mode' => 'payment',
         'locale' => $lang,
-        'success_url' => 'https://plant-shop-frontend.onrender.com/success',
-        'cancel_url' => 'https://plant-shop-frontend.onrender.com/cancel',
+        'success_url' => 'https://plantfront.onrender.com/success',
+        'cancel_url' => 'https://plantfront.onrender.com/cancel',
 
         'metadata' => [
     'name' => $delivery->name,
