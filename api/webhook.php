@@ -49,6 +49,8 @@ try {
         $email         = $session->metadata['email'] ?? '';
         $phone         = $session->metadata['phone'] ?? '';
 
+        error_log("LINE ITEMS: " . count($session->line_items->data));
+
         foreach ($session->line_items->data as $item) {
 
             $name = $item->price->product->name ?? $item->description ?? 'Unnamed';
@@ -95,6 +97,7 @@ try {
                 ':email' => $email,
                 ':phone' => $phone
             ]);
+            error_log("DB Insert executed");
         }
 
         error_log("✅ Saved to DB: " . $sessionId);
