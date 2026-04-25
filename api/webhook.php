@@ -41,17 +41,17 @@ try {
             'expand' => ['line_items']
         ]);
 
-        $customer_name = $session->metadata->name ?? '';
-        $address = $session->metadata->address ?? '';
-        $city = $session->metadata->city ?? '';
-        $postal = $session->metadata->postal ?? '';
-        $country = $session->metadata->country ?? '';
-        $email = $session->metadata->email ?? '';
-        $phone = $session->metadata->phone ?? '';
+        $customer_name = $session->metadata['name'] ?? '';
+        $address       = $session->metadata['address'] ?? '';   
+        $city          = $session->metadata['city'] ?? '';
+        $postal        = $session->metadata['postal'] ?? '';
+        $country       = $session->metadata['country'] ?? '';
+        $email         = $session->metadata['email'] ?? '';
+        $phone         = $session->metadata['phone'] ?? '';
 
         foreach ($session->line_items->data as $item) {
 
-            $name = $item->description;
+            $name = $item->price->product->name ?? $item->description ?? 'Unnamed';
             $quantity = $item->quantity;
 
             // ✅ FIXED
