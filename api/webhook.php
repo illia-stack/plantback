@@ -1,7 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../includes/db.php'; // DB Pfad prüfen!
+require_once __DIR__ . '/../includes/db.php'; // Pfad zu DB prüfen!
 
 // 🔥 Debug aktivieren
 error_reporting(E_ALL);
@@ -34,23 +34,20 @@ try {
 
         $session = $event->data->object;
 
-        // ✅ Session mit Line Items und Produktdetails abrufen
-        $session = \Stripe\Checkout\Session::retrieve($session->id, [
-            'expand' => ['line_items.data.price.product']
-        ]);
-
-        // 🔹 Prüfen ob Line Items existieren
-        if (empty($session->line_items->data)) {
-            error_log("⚠️ Line items empty!");
-        } else {
-            error_log("Number of line items: " . count($session->line_items->data));
-        }
-
         // 🔹 Log: Metadaten
         error_log("Customer metadata: " . json_encode($session->metadata));
 
-        foreach ($session->line_items->data as $item) {
-            $name = $item->price->product->name ?? $item->description ?? 'Unnamed';
+        // ✅ Alle Line Items abrufen
+        $lineItemsObj = \Stripe\Checkout\Session::allLineItems($session->id, ['limit' => 100]);
+
+        if (empty($lineItemsObj->data)) {
+            error_log("⚠️ Line items empty!");
+        } else {
+            error_log("Number of line items: " . count($lineItemsObj->data));
+        }
+
+        foreach ($lineItemsObj->data as $item) {
+            $name = $item->description ?? 'Unnamed';
             $quantity = $item->quantity ?? 0;
             $unit_price = ($item->price->unit_amount ?? 0) / 100;
             $total = $unit_price * $quantity;
@@ -63,7 +60,7 @@ try {
             $email         = $session->metadata['email'] ?? '';
             $phone         = $session->metadata['phone'] ?? '';
 
-            // Log: Daten vor DB-Insert
+            // 🔹 Log: Daten vor DB-Insert
             error_log("Inserting sale: " . json_encode([
                 'name' => $name,
                 'quantity' => $quantity,
