@@ -23,7 +23,6 @@ $payload = @file_get_contents('php://input');
 $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
 try {
-
     $event = \Stripe\Webhook::constructEvent(
         $payload,
         $sig_header,
@@ -41,6 +40,7 @@ try {
             'expand' => ['line_items']
         ]);
 
+        // Metadaten aus Stripe
         $customer_name = $session->metadata['name'] ?? '';
         $address       = $session->metadata['address'] ?? '';   
         $city          = $session->metadata['city'] ?? '';
@@ -53,13 +53,15 @@ try {
 
         foreach ($session->line_items->data as $item) {
 
+            // Produktname aus Stripe line_items oder fallback
             $name = $item->price->product->name ?? $item->description ?? 'Unnamed';
             $quantity = $item->quantity;
 
-            // ✅ FIXED
+            // Berechnung
             $total = $item->amount_total / 100;
             $price = $total / $quantity;
 
+            // ✅ INSERT in PostgreSQL (id wird automatisch generiert)
             $stmt = $conn->prepare("
                 INSERT INTO sales (
                     stripe_session_id,
@@ -97,7 +99,8 @@ try {
                 ':email' => $email,
                 ':phone' => $phone
             ]);
-            error_log("DB Insert executed");
+
+            error_log("DB Insert executed for product: " . $name);
         }
 
         error_log("✅ Saved to DB: " . $sessionId);
