@@ -38,21 +38,17 @@ try {
 
     foreach ($cart as $item) {
 
-        if (!isset($item->name) || !isset($item->price) || !isset($item->quantity)) {
+        if (!isset($item->name, $item->price, $item->quantity)) {
             throw new Exception("Invalid cart item structure");
         }
 
-                $price = floatval($item->price);
+        $price = floatval($item->price);
+        $quantity = intval($item->quantity);
 
-                if ($price <= 0) {
-                    throw new Exception("Invalid price");
-                }
+        if ($price <= 0 || $quantity <= 0) {
+            throw new Exception("Invalid price or quantity");
+        }
 
-                // ✅ APPLY 5% DISCOUNT IF USER LOGGED IN
-                if ($user && isset($user->id)) {
-                    $price = $price * 0.95;
-                }
-                
         $line_items[] = [
             'price_data' => [
                 'currency' => 'eur',
@@ -61,12 +57,12 @@ try {
                 ],
                 'unit_amount' => intval($price * 100),
             ],
-            'quantity' => intval($item->quantity),
+            'quantity' => $quantity,
         ];
     }
 
-    // Stripe Session erstellen
-    $session = \Stripe\Checkout\Session::create([
+    // Parameter eingeben und Stripe Session erstellen
+    $sessionParams = [
         'payment_method_types' => ['card'],
         'line_items' => $line_items,
         'mode' => 'payment',
@@ -75,17 +71,28 @@ try {
         'cancel_url' => 'https://plantfront.onrender.com/cancel',
 
         'metadata' => [
-    'name' => $delivery->name,
-    'address' => $delivery->address,
-    'city' => $delivery->city,
-    'postal' => $delivery->postal,
-    'country' => $delivery->country,
-    'email' => $delivery->email,
-    'phone' => $delivery->phone
-]
-    ]);
+            'name' => $delivery->name,
+            'address' => $delivery->address,
+            'city' => $delivery->city,
+            'postal' => $delivery->postal,
+            'country' => $delivery->country,
+            'email' => $delivery->email,
+            'phone' => $delivery->phone,
 
-    // 🔴 ALLES was vorher kam löschen (z.B. Warnings)
+            'user_id' => $user->id ?? null // Fuer den Rabatt
+        ]
+    ];
+
+    if ($user && isset($user->id)) {
+    $sessionParams['discounts'] = [[
+        'coupon' => 'AUTO_5_PERCENT'
+    ]];
+}
+
+$session = \Stripe\Checkout\Session::create($sessionParams);
+
+   
+// 🔴 ALLES was vorher kam löschen (z.B. Warnings)
     ob_clean();
 
     echo json_encode([
