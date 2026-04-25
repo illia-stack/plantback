@@ -1,9 +1,12 @@
 <?php
+
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once 'db.php';
+require_once __DIR__ . '/../db.php';
 
+// 🔥 Debug in Render Logs
+error_log("WEBHOOK CALLED");
 
-
+// Stripe Setup
 $stripeSecretKey = getenv('STRIPE_SECRET_KEY');
 \Stripe\Stripe::setApiKey($stripeSecretKey);
 
@@ -11,11 +14,11 @@ $endpoint_secret = getenv('STRIPE_WEBHOOK_SECRET');
 
 if (!$endpoint_secret) {
     http_response_code(500);
-    echo 'Webhook secret not found.';
+    error_log("Webhook secret missing");
     exit();
 }
 
-// Get request data
+// Request Daten
 $payload = @file_get_contents('php://input');
 $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
@@ -27,12 +30,13 @@ try {
         $endpoint_secret
     );
 
+    error_log("Event: " . $event->type);
+
     if ($event->type === 'checkout.session.completed') {
 
         $session = $event->data->object;
         $sessionId = $session->id;
 
-        // Retrieve full session with line items
         $session = \Stripe\Checkout\Session::retrieve($sessionId, [
             'expand' => ['line_items']
         ]);
@@ -49,8 +53,10 @@ try {
 
             $name = $item->description;
             $quantity = $item->quantity;
-            $price = $item->amount_total / 100;
-            $total = $price * $quantity;
+
+            // ✅ FIXED
+            $total = $item->amount_total / 100;
+            $price = $total / $quantity;
 
             $stmt = $conn->prepare("
                 INSERT INTO sales (
@@ -90,17 +96,19 @@ try {
                 ':phone' => $phone
             ]);
         }
+
+        error_log("✅ Saved to DB: " . $sessionId);
     }
 
     http_response_code(200);
 
 } catch (\Stripe\Exception\SignatureVerificationException $e) {
     http_response_code(400);
-    echo 'Webhook signature verification failed.';
+    error_log("❌ Signature error: " . $e->getMessage());
     exit();
+
 } catch (Exception $e) {
     http_response_code(500);
-    echo 'Error processing webhook: ' . $e->getMessage();
+    error_log("❌ General error: " . $e->getMessage());
     exit();
 }
-?>
