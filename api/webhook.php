@@ -34,22 +34,26 @@ try {
 
         $session = $event->data->object;
 
-        // Prüfen ob Line Items expandiert werden müssen
+        // ✅ Session mit Line Items und Produktdetails abrufen
         $session = \Stripe\Checkout\Session::retrieve($session->id, [
-            'expand' => ['line_items', 'line_items.data.price.product']
+            'expand' => ['line_items.data.price.product']
         ]);
 
-        // Log: Metadaten
+        // 🔹 Prüfen ob Line Items existieren
+        if (empty($session->line_items->data)) {
+            error_log("⚠️ Line items empty!");
+        } else {
+            error_log("Number of line items: " . count($session->line_items->data));
+        }
+
+        // 🔹 Log: Metadaten
         error_log("Customer metadata: " . json_encode($session->metadata));
-        error_log("Number of line items: " . count($session->line_items->data));
 
         foreach ($session->line_items->data as $item) {
             $name = $item->price->product->name ?? $item->description ?? 'Unnamed';
             $quantity = $item->quantity ?? 0;
-
-            // Berechnung
-            $total = $item->amount_total / 100 ?? 0;
-            $price = $quantity > 0 ? $total / $quantity : 0;
+            $unit_price = ($item->price->unit_amount ?? 0) / 100;
+            $total = $unit_price * $quantity;
 
             $customer_name = $session->metadata['name'] ?? '';
             $address       = $session->metadata['address'] ?? '';   
@@ -63,7 +67,7 @@ try {
             error_log("Inserting sale: " . json_encode([
                 'name' => $name,
                 'quantity' => $quantity,
-                'price' => $price,
+                'unit_price' => $unit_price,
                 'total' => $total
             ]));
 
@@ -95,7 +99,7 @@ try {
                     ':session_id' => $session->id,
                     ':name' => $name,
                     ':quantity' => $quantity,
-                    ':price' => $price,
+                    ':price' => $unit_price,
                     ':total' => $total,
                     ':customer_name' => $customer_name,
                     ':address' => $address,
@@ -106,12 +110,11 @@ try {
                     ':phone' => $phone
                 ]);
 
-                error_log("✅ Sale inserted: $name ($quantity x $price €)");
+                error_log("✅ Sale inserted: $name ($quantity x $unit_price €)");
             } catch (PDOException $e) {
                 error_log("❌ PDO Error: " . $e->getMessage());
             }
         }
-
     }
 
     http_response_code(200);
