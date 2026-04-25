@@ -36,7 +36,7 @@ try {
 
         // Prüfen ob Line Items expandiert werden müssen
         $session = \Stripe\Checkout\Session::retrieve($session->id, [
-            'expand' => ['line_items.data.price.product']
+            'expand' => ['line_items', 'line_items.data.price.product']
         ]);
 
         // Log: Metadaten
