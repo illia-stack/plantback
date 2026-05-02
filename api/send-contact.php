@@ -8,22 +8,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
 header('Content-Type: application/json');
 
-require __DIR__ . '/../vendor/autoload.php';
-
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
+// -------------------------
+// POST ONLY
+// -------------------------
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(403);
     echo json_encode(["success" => false, "error" => "Forbidden"]);
     exit;
 }
 
+// -------------------------
+// DATA
+// -------------------------
 $data = json_decode(file_get_contents("php://input"), true);
 
 $name = trim($data['name'] ?? '');
@@ -32,66 +30,87 @@ $subject = trim($data['subject'] ?? '');
 $message = trim($data['message'] ?? '');
 
 if (!$name || !$email || !$message) {
-    echo json_encode(["success" => false, "error" => "All fields are required"]);
+    echo json_encode(["success" => false, "error" => "Missing fields"]);
     exit;
 }
 
-$mail = new PHPMailer(true);
+// -------------------------
+// SENDGRID API KEY
+// -------------------------
+$apiKey = getenv('SENDGRID_API_KEY');
 
-try {
-    $mail->isSMTP();
-    $mail->Host = 'smtp.sendgrid.net';
-    $mail->SMTPAuth = true;
-    $mail->Username = 'apikey';
+if (!$apiKey) {
+    http_response_code(500);
+    echo json_encode(["success" => false, "error" => "Missing API key"]);
+    exit;
+}
 
-    $apiKey = getenv('SENDGRID_API_KEY');
-    error_log("SENDGRID KEY LENGTH: " . ($apiKey ? strlen($apiKey) : 0));
+// -------------------------
+// EMAIL PAYLOAD
+// -------------------------
+$payload = [
+    "personalizations" => [[
+        "to" => [[
+            "email" => "illiashapshalov38@gmail.com"
+        ]]
+    ]],
+    "from" => [
+        "email" => "illiashapshalov38@gmail.com"
+    ],
+    "subject" => "[Contact Form] " . $subject,
+    "content" => [[
+        "type" => "text/html",
+        "value" => "
+            <h3>New Contact Message</h3>
+            <p><b>Name:</b> $name</p>
+            <p><b>Email:</b> $email</p>
+            <p><b>Message:</b><br>$message</p>
+        "
+    ]]
+];
 
-    if (!$apiKey) {
-        http_response_code(500);
-        echo json_encode(["success" => false, "error" => "Missing API key"]);
-        exit;
-    }
+// -------------------------
+// CURL REQUEST
+// -------------------------
+$ch = curl_init();
 
-    $mail->Password = $apiKey;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
+curl_setopt($ch, CURLOPT_URL, "https://api.sendgrid.com/v3/mail/send");
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
-    // ✅ WICHTIG: VOR send()
-    $mail->Timeout = 10;
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Authorization: Bearer $apiKey",
+    "Content-Type: application/json"
+]);
 
-    $mail->SMTPDebug = 2;
-    $mail->Debugoutput = function($str, $level) {
-        error_log("SMTP DEBUG: $str");
-    };
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($payload));
 
-    $mail->setFrom('illiashapshalov38@gmail.com', 'Plant Shop');
-    $mail->addAddress('illiashapshalov38@gmail.com');
-    $mail->addReplyTo($email, $name);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-    $mail->isHTML(true);
-    $mail->Subject = '[Contact Form] ' . $subject;
-    $mail->Body = "
-        <h3>New Contact Form Message</h3>
-        <p><b>Name:</b> {$name}</p>
-        <p><b>Email:</b> {$email}</p>
-        <p><b>Message:</b><br>{$message}</p>
-    ";
+$curlError = curl_error($ch);
+curl_close($ch);
 
-    $mail->AltBody = "Name: $name\nEmail: $email\nMessage: $message";
-
-    // 🔥 TEST OPTION (optional aktivieren!)
-    // echo json_encode(["success" => true, "debug" => "mail skipped"]);
-    // exit;
-
-    $mail->send();
-
-    echo json_encode(["success" => true]);
-
-} catch (Exception $e) {
+// -------------------------
+// RESPONSE HANDLING
+// -------------------------
+if ($curlError) {
     http_response_code(500);
     echo json_encode([
         "success" => false,
-        "error" => $mail->ErrorInfo
+        "error" => $curlError
+    ]);
+    exit;
+}
+
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode(["success" => true]);
+} else {
+    http_response_code($httpCode);
+    echo json_encode([
+        "success" => false,
+        "error" => "SendGrid error",
+        "status" => $httpCode,
+        "response" => $response
     ]);
 }
