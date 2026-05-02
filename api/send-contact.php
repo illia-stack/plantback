@@ -12,6 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit();
 }
 
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
 // -------------------------
 // JSON Response
 // -------------------------
@@ -58,7 +61,13 @@ try {
     $mail->SMTPAuth = true;
     $mail->Username = 'apikey';
     $apiKey = getenv('SENDGRID_API_KEY');
-    if (!$apiKey) die("Missing SENDGRID_API_KEY");
+
+    error_log("SENDGRID KEY LENGTH: " . strlen(getenv('SENDGRID_API_KEY'))); 
+    if (!$apiKey) {
+        http_response_code(500);
+        echo json_encode(["success" => false, "error" => "Missing API key"]);
+        exit;
+    }
     $mail->Password = $apiKey;
     $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
     $mail->Port = 587;
@@ -81,5 +90,9 @@ try {
 
 } catch (Exception $e) {
     http_response_code(500);
-    echo json_encode(["success" => false, "error" => $mail->ErrorInfo]);
+    echo json_encode([
+        "success" => false,
+        "error" => $mail->ErrorInfo
+    ]);
 }
+

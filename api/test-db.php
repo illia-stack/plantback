@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../includes/db.php';
 
 try {
-    $stmt = $conn->query("SELECT NOW() as now");
+    $stmt = $conn->query("SELECT NOW() AS now");
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     echo "DB connected! Server time: " . $row['now'];
 } catch (Exception $e) {
