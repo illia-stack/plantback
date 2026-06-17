@@ -1,16 +1,25 @@
 <?php
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/config.php';
+    
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+header("Access-Control-Allow-Credentials: true");
 header('Content-Type: application/json');
 
 // ❗ WICHTIG: Keine HTML Errors mehr!
 ini_set('display_errors', 0);
-error_reporting(E_ALL);
+error_reporting(0);
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 // 🔴 Output Buffer verhindert kaputtes JSON
 ob_start();
 
 try {
-
-    require_once __DIR__ . '/config.php';
+    validate_csrf();
 
     $raw = file_get_contents("php://input");
 
@@ -31,8 +40,15 @@ try {
     }
 
     $delivery = $data->delivery ?? (object)[];
+
     $cart = $data->cart;
-    $user = $data->user ?? null;
+
+    $user = $_SESSION['user'] ?? null;
+    if (!$user) {
+        http_response_code(401);
+        throw new Exception("Unauthorized");
+    }
+
 
     $line_items = [];
 
@@ -79,20 +95,20 @@ try {
             'email' => $delivery->email,
             'phone' => $delivery->phone,
 
-            'user_id' => $user->id ?? null // Fuer den Rabatt
+            'user_id' => $user['id'] ?? null // Fuer den Rabatt
         ]
     ];
 
-    if ($user && isset($user->id)) {
-    $sessionParams['discounts'] = [[
-        'coupon' => 'AUTO_5_PERCENT'
-    ]];
-}
+    if ($user && isset($user['id'])) {
+        $sessionParams['discounts'] = [[
+            'coupon' => 'AUTO_5_PERCENT'
+        ]];
+    }
 
-$session = \Stripe\Checkout\Session::create($sessionParams);
+    $session = \Stripe\Checkout\Session::create($sessionParams);
 
    
-// 🔴 ALLES was vorher kam löschen (z.B. Warnings)
+    // 🔴 ALLES was vorher kam löschen (z.B. Warnings)
     ob_clean();
 
     echo json_encode([

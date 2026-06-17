@@ -1,9 +1,10 @@
 <?php
-
-require_once "../includes/db.php";
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../includes/db.php';
 
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
-header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+header("Access-Control-Allow-Credentials: true");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json");
 
@@ -16,10 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 // JSON lesen
 $data = json_decode(file_get_contents("php://input"));
 
-if (!$data) {
+if (!$data || json_last_error() !== JSON_ERROR_NONE) {
+    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Invalid JSON"]);
     exit();
 }
+
+
 
 // Input validieren
 $name = trim($data->name ?? '');
@@ -27,12 +31,14 @@ $email = trim($data->email ?? '');
 $password = $data->password ?? '';
 
 if ($name === '' || $email === '' || $password === '') {
+    http_response_code(400);
     echo json_encode(["success" => false, "message" => "All fields required"]);
     exit();
 }
 
 // Email validieren (kleiner, aber wichtig)
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
     echo json_encode(["success" => false, "message" => "Invalid email"]);
     exit();
 }
@@ -41,11 +47,13 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
 
 try {
+    validate_csrf();
     // optional: check if email already exists (robuster als DB error codes)
     $check = $conn->prepare("SELECT id FROM users WHERE email = :email");
     $check->execute([':email' => $email]);
 
-    if ($check->fetch()) {
+    if($check->fetch()){
+        http_response_code(409);
         echo json_encode(["success" => false, "message" => "Email already exists"]);
         exit();
     }

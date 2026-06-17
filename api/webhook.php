@@ -1,11 +1,15 @@
 <?php
 
+require_once __DIR__ . '/../includes/bootstrap.php';
+require_once __DIR__ . '/../includes/db.php';
 require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../includes/db.php'; // Pfad zu DB prüfen!
+
+
+header("Content-Type: text/plain");
 
 // 🔥 Debug aktivieren
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+error_reporting(0);
+ini_set('display_errors', 0);
 
 $stripeSecretKey = getenv('STRIPE_SECRET_KEY');
 \Stripe\Stripe::setApiKey($stripeSecretKey);
@@ -109,7 +113,12 @@ try {
 
                 error_log("✅ Sale inserted: $name ($quantity x $unit_price €)");
             } catch (PDOException $e) {
-                error_log("❌ PDO Error: " . $e->getMessage());
+                if ($e->getCode() == 23000) {
+                    error_log("Duplicate webhook ignored: " . $session->id);
+                } else {
+                    error_log("❌ PDO Error: " . $e->getMessage());
+                    throw $e;
+                }
             }
         }
     }

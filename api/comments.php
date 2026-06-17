@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . "/config.php";
+require_once "../includes/bootstrap.php";
 require_once __DIR__ . "/../includes/db.php";
 
 // ----------------------
