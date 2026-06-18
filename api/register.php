@@ -4,52 +4,55 @@ require_once __DIR__ . '/../includes/db.php';
 
 header("Content-Type: application/json");
 
-
-// JSON lesen
-$data = json_decode(file_get_contents("php://input"));
-
-if (!$data || json_last_error() !== JSON_ERROR_NONE) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Invalid JSON"]);
-    exit();
-}
-
-
-
-// Input validieren
-$name = trim($data->name ?? '');
-$email = trim($data->email ?? '');
-$password = $data->password ?? '';
-
-if ($name === '' || $email === '' || $password === '') {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "All fields required"]);
-    exit();
-}
-
-// Email validieren (kleiner, aber wichtig)
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Invalid email"]);
-    exit();
-}
-
-// Passwort hash
-$hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+// DEBUG (später entfernen!)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
 
 try {
+
+    // JSON lesen
+    $data = json_decode(file_get_contents("php://input"));
+
+    if (!$data || json_last_error() !== JSON_ERROR_NONE) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "Invalid JSON"]);
+        exit();
+    }
+
+    // Input validieren
+    $name = trim($data->name ?? '');
+    $email = trim($data->email ?? '');
+    $password = $data->password ?? '';
+
+    if ($name === '' || $email === '' || $password === '') {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "All fields required"]);
+        exit();
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "Invalid email"]);
+        exit();
+    }
+
+    // 🔐 CSRF prüfen
     validate_csrf();
-    // optional: check if email already exists (robuster als DB error codes)
+
+    // Passwort hash
+    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+
+    // Check email
     $check = $conn->prepare("SELECT id FROM users WHERE email = :email");
     $check->execute([':email' => $email]);
 
-    if($check->fetch()){
+    if ($check->fetch()) {
         http_response_code(409);
         echo json_encode(["success" => false, "message" => "Email already exists"]);
         exit();
     }
 
-    // insert user
+    // Insert user
     $stmt = $conn->prepare("
         INSERT INTO users (name, email, password)
         VALUES (:name, :email, :password)
@@ -69,10 +72,13 @@ try {
         ]
     ]);
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
+
     http_response_code(500);
+
     echo json_encode([
         "success" => false,
-        "message" => "Server error"
+        "message" => "Server error",
+        "debug" => $e->getMessage() // 🔥 hilft dir jetzt
     ]);
 }
