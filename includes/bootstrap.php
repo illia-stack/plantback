@@ -6,7 +6,7 @@ session_set_cookie_params([
     'path' => '/',
     'httponly' => true,
     'secure' => true,
-    'samesite' => 'Lax'
+    'samesite' => 'None'
 ]);
 session_start();
 require_once __DIR__ . '/db.php';
