@@ -20,5 +20,4 @@ session_set_cookie_params([
     'samesite' => 'None'
 ]);
 session_start();
-require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/security.php';
