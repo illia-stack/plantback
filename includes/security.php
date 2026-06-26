@@ -1,8 +1,11 @@
 <?php 
 
 function validate_csrf(){
-    $headers = function_exists('getallheaders') ? getallheaders() : [];
-    $token = $headers['X-CSRF-Token'] ?? $headers['x-csrf-token'] ?? '';
+    if(function_exists('getallheaders')){
+        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    } else { $headers = []; }
+
+    $token = $headers['x-csrf-token'] ?? '';
     
     if(!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']){
         http_response_code(403);

@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
+    'domain' => 'plantback.onrender.com',
     'httponly' => true,
     'secure' => true,
     'samesite' => 'None'
