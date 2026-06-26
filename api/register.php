@@ -9,7 +9,7 @@ ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
 try {
-
+    rate_limit('register', 5, 60); // 5 requests per minute
     // JSON lesen
     $data = json_decode(file_get_contents("php://input"));
 
