@@ -14,6 +14,7 @@ try {
     // 🔐 CSRF prüfen
     validate_csrf();
 
+  
     // JSON lesen
     $data = json_decode(file_get_contents("php://input"));
 
