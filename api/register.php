@@ -10,6 +10,10 @@ error_reporting(E_ALL);
 
 try {
     rate_limit('register', 5, 60); // 5 requests per minute
+
+    // 🔐 CSRF prüfen
+    validate_csrf();
+
     // JSON lesen
     $data = json_decode(file_get_contents("php://input"));
 
@@ -21,7 +25,7 @@ try {
 
     // Input validieren
     $name = trim($data->name ?? '');
-    $email = trim($data->email ?? '');
+    $email = strtolower(trim($data->email ?? ''));
     $password = $data->password ?? '';
 
     if ($name === '' || $email === '' || $password === '') {
@@ -30,27 +34,31 @@ try {
         exit();
     }
 
+    if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/', $password)) {
+        http_response_code(400);
+        echo json_encode([
+            "success" => false,
+            "message" => "Password must be at least 8 characters and include uppercase, lowercase, number and special character"
+        ]);
+        exit();
+    }
+
+    
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         http_response_code(400);
         echo json_encode(["success" => false, "message" => "Invalid email"]);
         exit();
     }
 
-    // 🔐 CSRF prüfen
-    validate_csrf();
-
+    
     // Passwort hash
-    $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+    $hashedPassword = password_hash($password, PASSWORD_BCRYPT, [
+        'cost' => 12
+    ]);
 
-    // Check email
-    $check = $conn->prepare("SELECT id FROM users WHERE email = :email");
-    $check->execute([':email' => $email]);
 
-    if ($check->fetch()) {
-        http_response_code(409);
-        echo json_encode(["success" => false, "message" => "Email already exists"]);
-        exit();
-    }
+    
 
     // Insert user
     $stmt = $conn->prepare("
