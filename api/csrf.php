@@ -1,8 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../includes/bootstrap.php';
-header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
-header("Access-Control-Allow-Credentials: true");
+
 header("Content-Type: application/json");
 
 if($_SERVER['REQUEST_METHOD'] === 'OPTIONS'){
@@ -12,7 +11,9 @@ if($_SERVER['REQUEST_METHOD'] === 'OPTIONS'){
 
 
 if(!isset($_SESSION['csrf_token'])){
+    session_regenerate_id(true);
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    session_write_close();
 }
 
 echo json_encode([

@@ -2,10 +2,6 @@
 require_once __DIR__ . "/../includes/bootstrap.php";
 require_once __DIR__ . "/../includes/db.php";
 
-header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
-header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Content-Type: application/json");
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -21,7 +17,7 @@ if(!$data || json_last_error() !== JSON_ERROR_NONE)  {
     exit();
 }
 
-$email = trim($data->email ?? '');
+$email = strtolower(trim($data->email ?? ''));
 $password = $data->password ?? '';
 
 if (!$email || !$password) {
@@ -32,12 +28,16 @@ if (!$email || !$password) {
 
 try {
     validate_csrf();
+    rate_limit('login', 10, 60);
+    
     $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
     $stmt->execute([':email' => $email]);
 
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user || !password_verify($password, $user['password'])) {
+    $valid = $user && password_verify($password, $user['password']);
+
+    if (!$valid) {
         http_response_code(401);
         echo json_encode(["success" => false, "message" => "Invalid credentials"]);
         exit();
@@ -49,15 +49,23 @@ try {
         "id" => $user["id"],
         "name" => $user["name"],
         "email" => $user["email"],
-        "role" => $user["role"],
+        "role" => $user["role"]
     ];  
 
    
 
-    echo json_encode(["success" => true]);
+    echo json_encode([  
+        "success" => true,
+        "user" => $_SESSION['user']
+    ]);
     
 
 } catch (PDOException $e) {
+    error_log($e->getMessage()); 
+
     http_response_code(500);
-    echo json_encode(["success" => false, "message" => $e->getMessage()]);
+    echo json_encode([
+        "success" => false,
+        "message" => "Server error"
+    ]);
 }
