@@ -25,8 +25,6 @@ if ($_SERVER["REQUEST_METHOD"] !== "POST") {
 // DATA
 // -------------------------
 
-validate_csrf();
-
 $data = json_decode(file_get_contents("php://input"), true);
 
 $name = trim($data['name'] ?? '');
