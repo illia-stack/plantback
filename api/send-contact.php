@@ -1,5 +1,6 @@
 <?php
-
+echo "HIT";
+exit;
 // ✅ CORS (ONLY what this endpoint needs)
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
