@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ '/..includes/bootstrap.php';
+require_once __DIR__ . '/..includes/bootstrap.php';
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
