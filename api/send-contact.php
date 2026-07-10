@@ -14,7 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header('Content-Type: application/json');
 
-rate_limit("contact", 5, 60);
 
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(403);
