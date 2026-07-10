@@ -1,5 +1,5 @@
 <?php
-die("CONTACT FILE HIT");
+
 // ✅ CORS (ONLY what this endpoint needs)
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -39,6 +39,9 @@ if (!$name || !$email || !$message) {
 // SENDGRID API KEY
 // -------------------------
 $apiKey = getenv('SENDGRID_API_KEY');
+if (!$apiKey) {
+    error_log("SENDGRID_API_KEY missing");
+}
 
 if (!$apiKey) {
     http_response_code(500);
