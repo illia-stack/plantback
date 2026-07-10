@@ -1,10 +1,22 @@
 <?php
 
-require_once __DIR__ . '/../includes/bootstrap.php';
+// ✅ CORS (ONLY what this endpoint needs)
+header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
+header("Access-Control-Allow-Methods: POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type");
+header("Access-Control-Allow-Credentials: false");
+
+// ✅ Preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 header('Content-Type: application/json');
 
-// POST ONLY
+require_once __DIR__ . '/../includes/security.php';
+rate_limit("contact", 5, 60);
+
 if ($_SERVER["REQUEST_METHOD"] !== "POST") {
     http_response_code(403);
     echo json_encode(["success" => false, "error" => "Forbidden"]);
