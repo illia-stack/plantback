@@ -44,10 +44,7 @@ try {
     $cart = $data->cart;
 
     $user = $_SESSION['user'] ?? null;
-    if (!$user) {
-        http_response_code(401);
-        throw new Exception("Unauthorized");
-    }
+    
 
 
     $line_items = [];
