@@ -27,9 +27,9 @@ if (!$email || !$password) {
 }
 
 try {
-    validate_csrf();
     rate_limit('login', 10, 60);
-    
+    validate_csrf();
+        
     $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
     $stmt->execute([':email' => $email]);
 
@@ -52,6 +52,7 @@ try {
         "role" => $user["role"]
     ];  
 
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
    
 
     echo json_encode([  
@@ -60,7 +61,7 @@ try {
     ]);
     
 
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     error_log($e->getMessage()); 
 
     http_response_code(500);

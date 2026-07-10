@@ -13,7 +13,6 @@ if($_SERVER['REQUEST_METHOD'] === 'OPTIONS'){
 if(!isset($_SESSION['csrf_token'])){
     session_regenerate_id(true);
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-    session_write_close();
 }
 
 echo json_encode([

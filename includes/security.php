@@ -20,7 +20,7 @@ function validate_csrf(){
 }
 
 function rate_limit($key, $maxRequests = 5, $perSeconds = 60) {
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
+    $ip = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '')[0];
     $identifier = $key . '_' . $ip;
 
     $file = sys_get_temp_dir() . "/rate_limit_" . md5($identifier);
