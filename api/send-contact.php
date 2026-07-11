@@ -1,6 +1,9 @@
 <?php
 
-// ✅ CORS (public endpoint)
+// 🔥 Confirm request hits THIS file
+error_log("CONTACT ENDPOINT HIT");
+
+// ✅ CORS
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
 header("Access-Control-Allow-Headers: Content-Type");
@@ -14,31 +17,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 header('Content-Type: application/json');
 
-// ✅ Parse JSON
-$data = json_decode(file_get_contents("php://input"), true);
+// -------------------------
+// DEBUG: RAW INPUT
+// -------------------------
+$raw = file_get_contents("php://input");
+error_log("RAW INPUT: " . $raw);
 
-if (!$data) {
+// -------------------------
+// JSON PARSE
+// -------------------------
+$data = json_decode($raw, true);
+
+if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Invalid JSON"]);
+    echo json_encode([
+        "success" => false,
+        "error" => "Invalid JSON",
+        "json_error" => json_last_error_msg()
+    ]);
     exit;
 }
 
-// ✅ Sanitize
+// -------------------------
+// SANITIZE
+// -------------------------
 $name = trim($data['name'] ?? '');
 $email = trim($data['email'] ?? '');
 $subject = trim($data['subject'] ?? 'No subject');
 $message = trim($data['message'] ?? '');
 
-// ✅ Validate
+// -------------------------
+// VALIDATE
+// -------------------------
 if (!$name || !$email || !$message) {
     http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Missing fields"]);
-    exit;
-}
-
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "error" => "Invalid email"]);
+    echo json_encode([
+        "success" => false,
+        "error" => "Missing fields",
+        "received" => $data // DEBUG ONLY
+    ]);
     exit;
 }
 
@@ -49,7 +66,10 @@ $apiKey = getenv('SENDGRID_API_KEY');
 
 if (!$apiKey) {
     http_response_code(500);
-    echo json_encode(["success" => false, "error" => "Missing API key"]);
+    echo json_encode([
+        "success" => false,
+        "error" => "Missing API key"
+    ]);
     exit;
 }
 
@@ -97,22 +117,11 @@ $error = curl_error($ch);
 curl_close($ch);
 
 // -------------------------
-// RESPONSE
+// DEBUG RESPONSE
 // -------------------------
-if ($error) {
-    http_response_code(500);
-    echo json_encode(["success" => false, "error" => $error]);
-    exit;
-}
-
-if ($httpCode >= 200 && $httpCode < 300) {
-    echo json_encode(["success" => true]);
-} else {
-    http_response_code($httpCode);
-    echo json_encode([
-        "success" => false,
-        "error" => "SendGrid failed",
-        "status" => $httpCode,
-        "response" => $response
-    ]);
-}
+echo json_encode([
+    "success" => $httpCode >= 200 && $httpCode < 300,
+    "sendgrid_status" => $httpCode,
+    "sendgrid_response" => $response,
+    "curl_error" => $error ?: null
+]);
