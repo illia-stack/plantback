@@ -1,8 +1,5 @@
 <?php
 
-// 🔥 Confirm request hits THIS file
-error_log("CONTACT ENDPOINT HIT");
-
 // ✅ CORS
 header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
 header("Access-Control-Allow-Methods: POST, OPTIONS");
@@ -18,51 +15,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json');
 
 // -------------------------
-// DEBUG: RAW INPUT
+// PARSE JSON
 // -------------------------
 $raw = file_get_contents("php://input");
-error_log("RAW INPUT: " . $raw);
-
-// -------------------------
-// JSON PARSE
-// -------------------------
 $data = json_decode($raw, true);
 
 if (json_last_error() !== JSON_ERROR_NONE) {
     http_response_code(400);
     echo json_encode([
         "success" => false,
-        "error" => "Invalid JSON",
-        "json_error" => json_last_error_msg()
+        "error" => "Invalid JSON"
     ]);
     exit;
 }
 
 // -------------------------
-// SANITIZE
+// VALIDATE
 // -------------------------
 $name = trim($data['name'] ?? '');
 $email = trim($data['email'] ?? '');
 $subject = trim($data['subject'] ?? 'No subject');
 $message = trim($data['message'] ?? '');
 
-// -------------------------
-// VALIDATE
-// -------------------------
 if (!$name || !$email || !$message) {
     http_response_code(400);
     echo json_encode([
         "success" => false,
-        "error" => "Missing fields",
-        "received" => $data // DEBUG ONLY
+        "error" => "Missing fields"
+    ]);
+    exit;
+}
+
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "error" => "Invalid email"
     ]);
     exit;
 }
 
 // -------------------------
-// SENDGRID
+// RESEND
 // -------------------------
-$apiKey = getenv('SENDGRID_API_KEY');
+$apiKey = getenv('RESEND_API_KEY');
 
 if (!$apiKey) {
     http_response_code(500);
@@ -73,32 +69,22 @@ if (!$apiKey) {
     exit;
 }
 
-// -------------------------
-// PAYLOAD
-// -------------------------
 $payload = [
-    "personalizations" => [[
-        "to" => [[ "email" => "illiashapshalov38@gmail.com" ]]
-    ]],
-    "from" => [
-        "email" => "illiashapshalov38@gmail.com"
-    ],
+    "from" => "onboarding@resend.dev", // works immediately
+    "to" => ["illiashapshalov38@gmail.com"],
     "subject" => "[Contact] " . $subject,
-    "content" => [[
-        "type" => "text/html",
-        "value" => "
-            <h3>New message</h3>
-            <p><b>Name:</b> $name</p>
-            <p><b>Email:</b> $email</p>
-            <p><b>Message:</b><br>$message</p>
-        "
-    ]]
+    "html" => "
+        <h3>New message</h3>
+        <p><b>Name:</b> $name</p>
+        <p><b>Email:</b> $email</p>
+        <p><b>Message:</b><br>$message</p>
+    "
 ];
 
 // -------------------------
 // CURL
 // -------------------------
-$ch = curl_init("https://api.sendgrid.com/v3/mail/send");
+$ch = curl_init("https://api.resend.com/emails");
 
 curl_setopt_array($ch, [
     CURLOPT_POST => true,
@@ -117,11 +103,27 @@ $error = curl_error($ch);
 curl_close($ch);
 
 // -------------------------
-// DEBUG RESPONSE
+// RESPONSE
 // -------------------------
-echo json_encode([
-    "success" => $httpCode >= 200 && $httpCode < 300,
-    "sendgrid_status" => $httpCode,
-    "sendgrid_response" => $response,
-    "curl_error" => $error ?: null
-]);
+if ($error) {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "error" => $error
+    ]);
+    exit;
+}
+
+if ($httpCode >= 200 && $httpCode < 300) {
+    echo json_encode([
+        "success" => true
+    ]);
+} else {
+    http_response_code(500);
+    echo json_encode([
+        "success" => false,
+        "error" => "Resend failed",
+        "status" => $httpCode,
+        "response" => $response
+    ]);
+}
