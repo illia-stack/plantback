@@ -1,72 +1,73 @@
 <?php
-require_once __DIR__ . "/../includes/bootstrap.php";
-require_once __DIR__ . "/../includes/db.php";
+    require_once __DIR__ . "/../includes/bootstrap.php";
+    require_once __DIR__ . "/../includes/db.php";
 
-header("Content-Type: application/json");
+    header("Content-Type: application/json");
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
-
-$data = json_decode(file_get_contents("php://input"));
-
-if(!$data || json_last_error() !== JSON_ERROR_NONE)  {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "Invalid JSON"]);
-    exit();
-}
-
-$email = strtolower(trim($data->email ?? ''));
-$password = $data->password ?? '';
-
-if (!$email || !$password) {
-    http_response_code(400);
-    echo json_encode(["success" => false, "message" => "All fields required"]);
-    exit();
-}
-
-try {
-    rate_limit('login', 10, 60);
-    validate_csrf();
-        
-    $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
-    $stmt->execute([':email' => $email]);
-
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    $valid = $user && password_verify($password, $user['password']);
-
-    if (!$valid) {
-        http_response_code(401);
-        echo json_encode(["success" => false, "message" => "Invalid credentials"]);
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
         exit();
     }
 
-    session_regenerate_id(true);
+    $data = json_decode(file_get_contents("php://input"));
 
-    $_SESSION['user'] = [
-        "id" => $user["id"],
-        "name" => $user["name"],
-        "email" => $user["email"],
-        "role" => $user["role"]
-    ];  
+    if(!$data || json_last_error() !== JSON_ERROR_NONE)  {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "Invalid JSON"]);
+        exit();
+    }
 
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-   
+    $email = strtolower(trim($data->email ?? ''));
+    $password = $data->password ?? '';
 
-    echo json_encode([  
-        "success" => true,
-        "user" => $_SESSION['user']
-    ]);
+    if (!$email || !$password) {
+        http_response_code(400);
+        echo json_encode(["success" => false, "message" => "All fields required"]);
+        exit();
+    }
+
+    try {
+        rate_limit('login', 10, 60);
+        validate_csrf();
+            
+        $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
+        $stmt->execute([':email' => $email]);
+
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        $valid = $user && password_verify($password, $user['password']);
+
+        if (!$valid) {
+            http_response_code(401);
+            echo json_encode(["success" => false, "message" => "Invalid credentials"]);
+            exit();
+        }
+
+        session_regenerate_id(true);
+
+        $_SESSION['user'] = [
+            "id" => $user["id"],
+            "name" => $user["name"],
+            "email" => $user["email"],
+            "role" => $user["role"]
+        ];  
+
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     
 
-} catch (Throwable $e) {
-    error_log($e->getMessage()); 
+        echo json_encode([  
+            "success" => true,
+            "user" => $_SESSION['user']
+        ]);
+        
 
-    http_response_code(500);
-    echo json_encode([
-        "success" => false,
-        "message" => "Server error"
-    ]);
-}
+    } catch (Throwable $e) {
+        error_log($e->getMessage()); 
+
+        http_response_code(500);
+        echo json_encode([
+            "success" => false,
+            "message" => "Server error"
+        ]);
+    }
+?>

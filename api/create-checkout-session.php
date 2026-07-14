@@ -1,126 +1,121 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
-require_once __DIR__ . '/config.php';
-    
-header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
-header("Access-Control-Allow-Credentials: true");
-header('Content-Type: application/json');
 
-// ❗ WICHTIG: Keine HTML Errors mehr!
-ini_set('display_errors', 0);
-error_reporting(0);
+    require_once __DIR__ . '/../includes/bootstrap.php';
+    require_once __DIR__ . '/config.php';
+        
+    header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+    header("Access-Control-Allow-Credentials: true");
+    header('Content-Type: application/json');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
 
-// 🔴 Output Buffer verhindert kaputtes JSON
-ob_start();
-
-try {
-    validate_csrf();
-
-    $raw = file_get_contents("php://input");
-
-    if (!$raw) {
-        throw new Exception("No input received");
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(200);
+        exit();
     }
 
-    $data = json_decode($raw);
+    // 🔴 Output Buffer prevents a wrong JSON
+    ob_start();
 
-    if (!$data) {
-        throw new Exception("Invalid JSON input");
-    }
+    try {
+        validate_csrf();
 
-    $lang = $data->language ?? 'en';
+        $raw = file_get_contents("php://input");
 
-    if (!isset($data->cart)) {
-        throw new Exception("Cart is missing");
-    }
-
-    $delivery = $data->delivery ?? (object)[];
-
-    $cart = $data->cart;
-
-    $user = $_SESSION['user'] ?? null;
-    
-
-
-    $line_items = [];
-
-    foreach ($cart as $item) {
-
-        if (!isset($item->name, $item->price, $item->quantity)) {
-            throw new Exception("Invalid cart item structure");
+        if (!$raw) {
+            throw new Exception("No input received");
         }
 
-        $price = floatval($item->price);
-        $quantity = intval($item->quantity);
+        $data = json_decode($raw);
 
-        if ($price <= 0 || $quantity <= 0) {
-            throw new Exception("Invalid price or quantity");
+        if (!$data) {
+            throw new Exception("Invalid JSON input");
         }
 
-        $line_items[] = [
-            'price_data' => [
-                'currency' => 'eur',
-                'product_data' => [
-                    'name' => $item->name,
+        $lang = $data->language ?? 'en';
+
+        if (!isset($data->cart)) {
+            throw new Exception("Cart is missing");
+        }
+
+        $delivery = $data->delivery ?? (object)[];
+
+        $cart = $data->cart;
+
+        $user = $_SESSION['user'] ?? null;
+        
+
+
+        $line_items = [];
+
+        foreach ($cart as $item) {
+
+            if (!isset($item->name, $item->price, $item->quantity)) {
+                throw new Exception("Invalid cart item structure");
+            }
+
+            $price = floatval($item->price);
+            $quantity = intval($item->quantity);
+
+            if ($price <= 0 || $quantity <= 0) {
+                throw new Exception("Invalid price or quantity");
+            }
+
+            $line_items[] = [
+                'price_data' => [
+                    'currency' => 'eur',
+                    'product_data' => [
+                        'name' => $item->name,
+                    ],
+                    'unit_amount' => intval($price * 100),
                 ],
-                'unit_amount' => intval($price * 100),
-            ],
-            'quantity' => $quantity,
+                'quantity' => $quantity,
+            ];
+        }
+
+        // Give a parameter and create a Stripe Session 
+        $sessionParams = [
+            'payment_method_types' => ['card'],
+            'line_items' => $line_items,
+            'mode' => 'payment',
+            'locale' => $lang,
+            'success_url' => 'https://plantfront.onrender.com/success',
+            'cancel_url' => 'https://plantfront.onrender.com/cancel',
+
+            'metadata' => [
+                'name' => $delivery->name,
+                'address' => $delivery->address,
+                'city' => $delivery->city,
+                'postal' => $delivery->postal,
+                'country' => $delivery->country,
+                'email' => $delivery->email,
+                'phone' => $delivery->phone,
+
+                'user_id' => $user['id'] ?? null // Fuer den Rabatt
+            ]
         ];
+
+        if ($user && isset($user['id'])) {
+            $sessionParams['discounts'] = [[
+                'coupon' => 'AUTO_5_PERCENT'
+            ]];
+        }
+
+        $session = \Stripe\Checkout\Session::create($sessionParams);
+
+        ob_clean();
+
+        echo json_encode([
+            "url" => $session->url
+        ]);
+
+    } catch (Exception $e) {
+
+        ob_clean();
+
+        http_response_code(500);
+
     }
 
-    // Parameter eingeben und Stripe Session erstellen
-    $sessionParams = [
-        'payment_method_types' => ['card'],
-        'line_items' => $line_items,
-        'mode' => 'payment',
-        'locale' => $lang,
-        'success_url' => 'https://plantfront.onrender.com/success',
-        'cancel_url' => 'https://plantfront.onrender.com/cancel',
+    exit;
 
-        'metadata' => [
-            'name' => $delivery->name,
-            'address' => $delivery->address,
-            'city' => $delivery->city,
-            'postal' => $delivery->postal,
-            'country' => $delivery->country,
-            'email' => $delivery->email,
-            'phone' => $delivery->phone,
-
-            'user_id' => $user['id'] ?? null // Fuer den Rabatt
-        ]
-    ];
-
-    if ($user && isset($user['id'])) {
-        $sessionParams['discounts'] = [[
-            'coupon' => 'AUTO_5_PERCENT'
-        ]];
-    }
-
-    $session = \Stripe\Checkout\Session::create($sessionParams);
-
-   
-    // 🔴 ALLES was vorher kam löschen (z.B. Warnings)
-    ob_clean();
-
-    echo json_encode([
-        "url" => $session->url
-    ]);
-
-} catch (Exception $e) {
-
-    ob_clean();
-
-    http_response_code(500);
-
-    echo json_encode([
-        "error" => $e->getMessage()
-    ]);
-}
-
-exit;
+?>

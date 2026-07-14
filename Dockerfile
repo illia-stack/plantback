@@ -10,12 +10,12 @@ WORKDIR /var/www/html
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 👉 erst composer.json + lock
+# 👉 first composer.json + lock
 COPY composer.json composer.lock ./
 
 RUN composer install --no-dev --optimize-autoloader
 
-# 👉 dann Code
+# 👉 then the code
 COPY . .
 
 RUN chown -R www-data:www-data /var/www/html

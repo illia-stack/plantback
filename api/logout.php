@@ -1,37 +1,38 @@
 <?php
-require_once __DIR__ . '/../includes/bootstrap.php';
+    require_once __DIR__ . '/../includes/bootstrap.php';
 
-header("Content-Type: application/json");
+    header("Content-Type: application/json");
 
-// 🔐 Alle Session-Daten löschen
-$_SESSION = [];
+    // 🔐 Delete all Session-Daten
+    $_SESSION = [];
 
-// 🔐 Session-Cookie löschen (sehr wichtig!)
-if (ini_get("session.use_cookies")) {
-    $params = session_get_cookie_params();
+    // 🔐 Delete the Session-Cookie 
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
 
-    setcookie(
-        session_name(),
-        '',
-        time() - 42000,
-        $params["path"],
-        $params["domain"],
-        $params["secure"],
-        $params["httponly"]
-    );
-}
+        setcookie(
+            session_name(),
+            '',
+            time() - 42000,
+            $params["path"],
+            $params["domain"],
+            $params["secure"],
+            $params["httponly"]
+        );
+    }
 
-// 🔐 Session zerstören
-session_destroy();
+    // 🔐 End Session 
+    session_destroy();
 
-// 🔐 Neue frische Session starten
-session_start();
-session_regenerate_id(true);
+    // 🔐 Start a new Session
+    session_start();
+    session_regenerate_id(true);
 
-// 🔐 Neuer CSRF Token
-$_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+    // 🔐 New CSRF Token
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
-echo json_encode([
-  "success" => true,
-  "csrfToken" => $_SESSION['csrf_token']
-]);
+    echo json_encode([
+    "success" => true,
+    "csrfToken" => $_SESSION['csrf_token']
+    ]);
+?>
