@@ -15,6 +15,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Content-Type: application/json');
 
 // -------------------------
+// RATE LIMIT (simple file-based)
+// -------------------------
+$ip = $_SERVER['REMOTE_ADDR'];
+$limit = 5; // max requests
+$window = 60; // seconds
+
+$rateFile = sys_get_temp_dir() . "/rate_" . md5($ip);
+
+if (file_exists($rateFile)) {
+    $rateData = json_decode(file_get_contents($rateFile), true);
+
+    if (!is_array($rateData)) {
+        $rateData = ["count" => 1, "time" => time()];
+    }
+
+    if ($rateData['time'] > time() - $window) {
+        if ($rateData['count'] >= $limit) {
+            http_response_code(429);
+            echo json_encode([
+                "success" => false,
+                "error" => "Too many requests. Try again later."
+            ]);
+            exit;
+        }
+        $rateData['count']++;
+    } else {
+        $rateData = ["count" => 1, "time" => time()];
+    }
+} else {
+    $rateData = ["count" => 1, "time" => time()];
+}
+
+file_put_contents($rateFile, json_encode($rateData));
+
+
+
+if (strpos($_SERVER['CONTENT_TYPE'] ?? '', 'application/json') === false) {
+    http_response_code(415);
+    echo json_encode([
+        "success" => false,
+        "error" => "Invalid content type"
+    ]);
+    exit;
+}
+
+
+
+
+// -------------------------
 // PARSE JSON
 // -------------------------
 $raw = file_get_contents("php://input");
@@ -29,6 +78,14 @@ if (json_last_error() !== JSON_ERROR_NONE) {
     exit;
 }
 
+if (!empty($data['website'])) {
+    http_response_code(400);
+    exit;
+}
+
+
+
+
 // -------------------------
 // VALIDATE
 // -------------------------
@@ -36,6 +93,29 @@ $name = trim($data['name'] ?? '');
 $email = trim($data['email'] ?? '');
 $subject = trim($data['subject'] ?? 'No subject');
 $message = trim($data['message'] ?? '');
+
+
+
+if (
+    strlen($name) > 100 ||
+    strlen($email) > 150 ||
+    strlen($subject) > 150 ||
+    strlen($message) > 5000
+) {
+    http_response_code(400);
+    echo json_encode([
+        "success" => false,
+        "error" => "Input too long"
+    ]);
+    exit;
+}
+
+
+
+$nameSafe = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+$emailSafe = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+$subjectSafe = htmlspecialchars($subject, ENT_QUOTES, 'UTF-8');
+$messageSafe = nl2br(htmlspecialchars($message, ENT_QUOTES, 'UTF-8'));
 
 if (!$name || !$email || !$message) {
     http_response_code(400);
@@ -72,12 +152,12 @@ if (!$apiKey) {
 $payload = [
     "from" => "onboarding@resend.dev", // works immediately
     "to" => ["illiashapshalov38@gmail.com"],
-    "subject" => "[Contact] " . $subject,
+    "subject" => "[Contact] " . $subjectSafe,
     "html" => "
         <h3>New message</h3>
-        <p><b>Name:</b> $name</p>
-        <p><b>Email:</b> $email</p>
-        <p><b>Message:</b><br>$message</p>
+        <p><b>Name:</b> $nameSafe</p>
+        <p><b>Email:</b> $emailSafe</p>
+        <p><b>Message:</b><br>$messageSafe</p>
     "
 ];
 
@@ -109,7 +189,7 @@ if ($error) {
     http_response_code(500);
     echo json_encode([
         "success" => false,
-        "error" => $error
+        "error" => "Email service error"
     ]);
     exit;
 }
@@ -122,8 +202,7 @@ if ($httpCode >= 200 && $httpCode < 300) {
     http_response_code(500);
     echo json_encode([
         "success" => false,
-        "error" => "Resend failed",
-        "status" => $httpCode,
-        "response" => $response
+        "error" => "Email service error",
+        "status" => $httpCode
     ]);
 }
