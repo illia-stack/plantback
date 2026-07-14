@@ -1,5 +1,4 @@
 <?php
-
     require_once __DIR__ . '/../includes/bootstrap.php';
 
     header("Content-Type: application/json");
@@ -18,6 +17,4 @@
     echo json_encode([
         "csrfToken" => $_SESSION['csrf_token']
     ]);
-
-    error_log("CSRF SESSION:" . $_SESSION['csrf_token']);
 ?>

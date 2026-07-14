@@ -7,9 +7,6 @@
 
         $token = $headers['x-csrf-token'] ?? '';
         
-        error_log("CSRF SESSION REGISTER: " . ($_SESSION['csrf_token'] ?? 'NONE'));
-        error_log("CSRF HEADER: " . $token);
-
 
         if(!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']){
             http_response_code(403);

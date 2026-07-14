@@ -35,17 +35,14 @@
 
             $session = $event->data->object;
 
-            // 🔹 Log: Metadata
-            error_log("Customer metadata: " . json_encode($session->metadata));
+                        
 
             // ✅ Call all the lines
             $lineItemsObj = \Stripe\Checkout\Session::allLineItems($session->id, ['limit' => 100]);
 
             if (empty($lineItemsObj->data)) {
                 error_log("⚠️ Line items empty!");
-            } else {
-                error_log("Number of line items: " . count($lineItemsObj->data));
-            }
+            } 
 
             foreach ($lineItemsObj->data as $item) {
                 $name = $item->description ?? 'Unnamed';
@@ -61,7 +58,7 @@
                 $email         = $session->metadata['email'] ?? '';
                 $phone         = $session->metadata['phone'] ?? '';
 
-                
+
                 // 🔹 Log: Data before DB-Insert
                 error_log("Inserting sale: " . json_encode([
                     'name' => $name,
