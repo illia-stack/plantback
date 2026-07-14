@@ -88,6 +88,5 @@ try {
     echo json_encode([
         "success" => false,
         "message" => "Server error",
-        "debug" => $e->getMessage() // 🔥 hilft dir jetzt
     ]);
 }
