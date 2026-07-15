@@ -19,11 +19,15 @@
     try {
         validate_csrf();
 
+
+
         $raw = file_get_contents("php://input");
 
         if (!$raw) {
             throw new Exception("No input received");
         }
+
+
 
         $data = json_decode($raw);
 
@@ -31,30 +35,52 @@
             throw new Exception("Invalid JSON input");
         }
 
-        $lang = $data->language ?? 'en';
-
         if (!isset($data->cart)) {
             throw new Exception("Cart is missing");
         }
 
+
+
         $delivery = $data->delivery ?? (object)[];
+
 
         $cart = $data->cart;
 
-        $user = $_SESSION['user'] ?? null;
-        
+        if (empty($cart)) {
+            throw new Exception("Cart is empty");
+        }
 
+
+
+        $user = $_SESSION['user'] ?? null;
+
+
+        
 
         $line_items = [];
 
+
+
+
         foreach ($cart as $item) {
 
-            if (!isset($item->name, $item->price, $item->quantity)) {
-                throw new Exception("Invalid cart item structure");
+            if (!isset($item['id'], $item['quantity'])) {
+                throw new Exception("Invalid cart item");
             }
 
-            $price = floatval($item->price);
-            $quantity = intval($item->quantity);
+            $product = getProductById($item['id']);
+
+            if (!$product) {
+                throw new Exception("Product not found");
+            }
+
+            $price = floatval($product['price']);
+            $quantity = intval($item['quantity']);
+
+            // ✅ Apply discount safely on backend
+            if ($user && isset($user['id'])) {
+                $price = round($price * 0.95, 2);
+            }
 
             if ($price <= 0 || $quantity <= 0) {
                 throw new Exception("Invalid price or quantity");
@@ -64,7 +90,7 @@
                 'price_data' => [
                     'currency' => 'eur',
                     'product_data' => [
-                        'name' => $item->name,
+                        'name' => $product['name'],
                     ],
                     'unit_amount' => intval($price * 100),
                 ],
@@ -72,16 +98,17 @@
             ];
         }
 
-        error_log(json_encode($sessionParams));
+        
+        
 
         // Give a parameter and create a Stripe Session 
         $sessionParams = [
             'payment_method_types' => ['card'],
             'line_items' => $line_items,
             'mode' => 'payment',
-            'locale' => $lang,
             'success_url' => 'https://plantfront.onrender.com/success',
             'cancel_url' => 'https://plantfront.onrender.com/cancel',
+            'customer_email' => $delivery->email ?? null,
 
             'metadata' => array_filter([
                 'name' => $delivery->name ?? '',
@@ -89,16 +116,13 @@
                 'city' => $delivery->city ?? '',
                 'postal' => $delivery->postal ?? '',
                 'country' => $delivery->country ?? '',
-                'email' => $delivery->email ?? '',
+                'email' => $delivery->email ?? null,
                 'phone' => $delivery->phone ?? '',
                 'user_id' => $user['id'] ?? ''
             ])
         ];
 
-        // if ($user && isset($user['id'])) {
-//     $sessionParams['discounts'] = [[
-//         'coupon' => 'AUTO_5_PERCENT'
-//     ]]; }
+        
 
         $session = \Stripe\Checkout\Session::create($sessionParams);
 
@@ -111,6 +135,9 @@
     } catch (Exception $e) {
         ob_clean();
         http_response_code(500);
+        echo json_encode([
+            "error" => "Server error"
+        ]);
     }
 
     exit;

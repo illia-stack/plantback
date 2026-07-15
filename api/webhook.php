@@ -1,6 +1,5 @@
 <?php
 
-    require_once __DIR__ . '/../includes/bootstrap.php';
     require_once __DIR__ . '/../includes/db.php';
     require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -29,43 +28,59 @@
             $endpoint_secret
         );
 
+        $sessionObj = $event->data->object;
+
         error_log("Webhook event type: " . $event->type);
 
         if ($event->type === 'checkout.session.completed') {
 
-            $session = $event->data->object;
+            $session = \Stripe\Checkout\Session::retrieve([
+                'id' => $sessionObj->id,
+                'expand' => ['line_items']
+            ]);
+
+            if ($session->payment_status !== 'paid') {
+                error_log("⚠️ Payment not completed");
+                http_response_code(200);
+                exit();
+            }
 
                         
 
             // ✅ Call all the lines
-            $lineItemsObj = \Stripe\Checkout\Session::allLineItems($session->id, ['limit' => 100]);
+            $lineItems = $session->line_items->data;
 
-            if (empty($lineItemsObj->data)) {
+            if (empty($lineItems)) {
                 error_log("⚠️ Line items empty!");
-            } 
+            }
 
-            foreach ($lineItemsObj->data as $item) {
+            foreach ($lineItems as $item) {
+
                 $name = $item->description ?? 'Unnamed';
+
                 $quantity = $item->quantity ?? 0;
+
                 $unit_price = ($item->price->unit_amount ?? 0) / 100;
+
                 $total = $unit_price * $quantity;
 
-                $customer_name = $session->metadata['name'] ?? '';
-                $address       = $session->metadata['address'] ?? '';   
-                $city          = $session->metadata['city'] ?? '';
-                $postal        = $session->metadata['postal'] ?? '';
-                $country       = $session->metadata['country'] ?? '';
-                $email         = $session->metadata['email'] ?? '';
-                $phone         = $session->metadata['phone'] ?? '';
+                $customer_name = substr($session->metadata['name'] ?? '', 0, 255);
+
+                $address = substr($session->metadata['address'] ?? '', 0, 255);   
+
+                $city   = substr($session->metadata['city'] ?? '', 0, 100);
+
+                $postal   = $session->metadata['postal'] ?? '';
+
+                $country  = $session->metadata['country'] ?? '';
+
+                $email = $session->customer_email ?? '';
+
+                $phone    = $session->metadata['phone'] ?? '';
 
 
                 // 🔹 Log: Data before DB-Insert
-                error_log("Inserting sale: " . json_encode([
-                    'name' => $name,
-                    'quantity' => $quantity,
-                    'unit_price' => $unit_price,
-                    'total' => $total
-                ]));
+                error_log("Sale: $name x $quantity");
 
                 try {
                     $stmt = $conn->prepare("
@@ -111,7 +126,7 @@
                     if ($e->getCode() == 23000) {
                         error_log("Duplicate webhook ignored: " . $session->id);
                     } else {
-                        error_log("❌ PDO Error: " . $e->getMessage());
+                        error_log("❌ PDO Error");
                         throw $e;
                     }
                 }
@@ -122,9 +137,9 @@
 
     } catch (\Stripe\Exception\SignatureVerificationException $e) {
         http_response_code(400);
-        error_log("❌ Signature verification failed: " . $e->getMessage());
+        error_log("❌ Signature verification failed ");
     } catch (Exception $e) {
         http_response_code(500);
-        error_log("❌ General error: " . $e->getMessage());
+        error_log("❌ General error ");
     }
 ?>

@@ -25,5 +25,15 @@
     ]);
     session_start();
     require_once __DIR__ . '/security.php';
+    require_once __DIR__ . '/db.php';
+
+    function getProductById($id) {
+        global $conn;
+
+        $stmt = $conn->prepare("SELECT name, price FROM products WHERE id = ?");
+        $stmt->execute([$id]);
+
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
 
 ?>
