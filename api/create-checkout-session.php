@@ -31,6 +31,8 @@
             throw new Exception("Invalid JSON input");
         }
 
+        $lang = $data->language ?? 'en';
+
         if (!isset($data->cart)) {
             throw new Exception("Cart is missing");
         }
@@ -77,6 +79,7 @@
             'payment_method_types' => ['card'],
             'line_items' => $line_items,
             'mode' => 'payment',
+            'locale' => $lang,
             'success_url' => 'https://plantfront.onrender.com/success',
             'cancel_url' => 'https://plantfront.onrender.com/cancel',
 
@@ -92,13 +95,10 @@
             ])
         ];
 
-
-        if ($user && isset($user['id'])) {
-            $sessionParams['discounts'] = [[
-                'coupon' => 'AUTO_5_PERCENT'
-            ]];
-        }
-
+        // if ($user && isset($user['id'])) {
+//     $sessionParams['discounts'] = [[
+//         'coupon' => 'AUTO_5_PERCENT'
+//     ]]; }
 
         $session = \Stripe\Checkout\Session::create($sessionParams);
 
@@ -108,13 +108,10 @@
             "url" => $session->url
         ]);
 
-
-
     } catch (Exception $e) {
         ob_clean();
         http_response_code(500);
     }
-
 
     exit;
 
