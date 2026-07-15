@@ -1,5 +1,6 @@
 <?php
-
+    ini_set('display_errors', 1);
+error_reporting(E_ALL);
     require_once __DIR__ . '/../includes/bootstrap.php';
     require_once __DIR__ . '/config.php';
         
@@ -29,7 +30,7 @@
 
 
 
-        $data = json_decode($raw);
+        $data = json_decode($raw, true);
 
         if (!$data) {
             throw new Exception("Invalid JSON input");
