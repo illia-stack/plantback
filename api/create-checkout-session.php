@@ -72,6 +72,8 @@
             ];
         }
 
+        error_log(json_encode($sessionParams));
+
         // Give a parameter and create a Stripe Session 
         $sessionParams = [
             'payment_method_types' => ['card'],
@@ -81,24 +83,23 @@
             'success_url' => 'https://plantfront.onrender.com/success',
             'cancel_url' => 'https://plantfront.onrender.com/cancel',
 
-            'metadata' => [
-                'name' => $delivery->name,
-                'address' => $delivery->address,
-                'city' => $delivery->city,
-                'postal' => $delivery->postal,
-                'country' => $delivery->country,
-                'email' => $delivery->email,
-                'phone' => $delivery->phone,
-
-                'user_id' => $user['id'] ?? null // Fuer den Rabatt
-            ]
+            'metadata' => array_filter([
+                'name' => $delivery->name ?? '',
+                'address' => $delivery->address ?? '',
+                'city' => $delivery->city ?? '',
+                'postal' => $delivery->postal ?? '',
+                'country' => $delivery->country ?? '',
+                'email' => $delivery->email ?? '',
+                'phone' => $delivery->phone ?? '',
+                'user_id' => $user['id'] ?? ''
+            ])
         ];
 
-        if ($user && isset($user['id'])) {
-            $sessionParams['discounts'] = [[
-                'coupon' => 'AUTO_5_PERCENT'
-            ]];
-        }
+        // if ($user && isset($user['id'])) {
+//     $sessionParams['discounts'] = [[
+//         'coupon' => 'AUTO_5_PERCENT'
+//     ]];
+// }
 
         $session = \Stripe\Checkout\Session::create($sessionParams);
 
@@ -109,11 +110,14 @@
         ]);
 
     } catch (Exception $e) {
-
         ob_clean();
-
         http_response_code(500);
 
+        echo json_encode([
+            "error" => $e->getMessage()
+        ]);
+
+        error_log($e->getMessage());
     }
 
     exit;
