@@ -4,6 +4,9 @@
 
     require_once __DIR__ . '/config.php';
 
+    header("Content-Type: application/json");
+
+
     // 🔴 Output Buffer prevents a wrong JSON
     ob_start();
 
@@ -23,7 +26,7 @@
         $data = json_decode($raw, true);
 
   
-        if (!$data) {
+        if (json_last_error() !== JSON_ERROR_NONE) {
             throw new Exception("Invalid JSON input");
         }
 
@@ -32,22 +35,19 @@
         }
 
         $delivery = $data['delivery'] ?? [];
-        $cart = $data['cart'];
 
+
+        $cart = $data['cart'];
 
         if (empty($cart)) {
             throw new Exception("Cart is empty");
         }
 
 
-
         $user = $_SESSION['user'] ?? null;
 
 
-        
-
         $line_items = [];
-
 
 
 
@@ -64,16 +64,22 @@
             }
 
             $price = floatval($product['price']);
+
             $quantity = intval($item['quantity']);
+
 
             // ✅ Apply discount safely on backend
             if ($user && isset($user['id'])) {
+
                 $price = round($price * 0.95, 2);
+
             }
+
 
             if ($price <= 0 || $quantity <= 0) {
                 throw new Exception("Invalid price or quantity");
             }
+
 
             $line_items[] = [
                     'price_data' => [
@@ -85,6 +91,7 @@
                     ],
                     'quantity' => $quantity,
             ];
+
         }
 
         
@@ -121,15 +128,17 @@
             "url" => $session->url
         ]);
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
+
         ob_clean();
+
         http_response_code(500);
         
         echo json_encode([
             "error" => "Server error"
         ]);
 
-}
+    }
     
 
     exit;

@@ -1,13 +1,12 @@
 <?php
 
-
     require_once __DIR__ . "/../includes/bootstrap.php";
     require_once __DIR__ . "/../includes/db.php";
 
     header("Content-Type: application/json");
 
     rate_limit('login', 10, 60);
-    
+
     $data = json_decode(file_get_contents("php://input"));
 
     if(!$data || json_last_error() !== JSON_ERROR_NONE)  {
@@ -17,6 +16,7 @@
     }
 
     $email = strtolower(trim($data->email ?? ''));
+
     $password = $data->password ?? '';
 
     if (!$email || !$password) {
@@ -25,15 +25,17 @@
         exit();
     }
 
+
     try {
        
         validate_csrf();
-        
             
         $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
+
         $stmt->execute([':email' => $email]);
 
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
 
         $valid = $user && password_verify($password, $user['password']);
 
@@ -43,6 +45,7 @@
             exit();
         }
 
+        
         session_regenerate_id(true);
 
         $_SESSION['user'] = [

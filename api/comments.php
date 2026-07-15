@@ -10,10 +10,13 @@
     }
 
     require_once __DIR__ . "/config.php";
+
     require_once "../includes/bootstrap.php";
+
     require_once __DIR__ . "/../includes/db.php";
 
     rate_limit('comments', 10, 60);
+
 
     // ----------------------
     // GET COMMENTS
@@ -34,13 +37,18 @@
                 WHERE product_id = :product_id 
                 ORDER BY created_at DESC
             ");
+
             $stmt->execute(['product_id' => $product_id]);
 
             $comments = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             echo json_encode($comments);
+
+
         } catch (PDOException $e) {
+
             http_response_code(500);
+
             echo json_encode([
                 "success" => false,
                 "error" => "Server error"
@@ -48,7 +56,9 @@
         }
 
         exit();
+
     }
+
 
     // ----------------------
     // POST COMMENT
@@ -64,7 +74,9 @@
 
     
         $product_id = (int)$data['product_id'];
+
         $username = htmlspecialchars(trim($data['username']), ENT_QUOTES, 'UTF-8');
+
         $comment = htmlspecialchars(trim($data['comment']), ENT_QUOTES, 'UTF-8');
 
         if (strlen($username) > 100 || strlen($comment) > 1000) {
@@ -95,14 +107,21 @@
             ]);
 
             echo json_encode(["success" => true]);
+
+
         } catch (PDOException $e) {
+
             http_response_code(500);
+
             echo json_encode([
                 "success" => false,
                 "error" => "Server error"
             ]);
+
         }
 
         exit();
+
     }
+    
 ?>

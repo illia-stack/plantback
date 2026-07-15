@@ -8,6 +8,7 @@
 
     use Dotenv\Dotenv;
 
+    
     // ✅ Read from environment (Render provides this)
     $stripeSecretKey = getenv('STRIPE_SECRET_KEY') ?: ($_ENV['STRIPE_SECRET_KEY'] ?? null);
 
@@ -16,4 +17,5 @@
     }
 
     \Stripe\Stripe::setApiKey($stripeSecretKey);
+
 ?>

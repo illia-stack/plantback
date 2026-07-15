@@ -7,6 +7,7 @@
 
     
     try {
+        
         rate_limit('register', 5, 60); // 5 requests per minute
 
         // 🔐 Check the CSRF 
@@ -43,12 +44,14 @@
             $errors['name'][] = "Name must be at least 2 characters";
         }
 
+
         // Email validation
         if ($email === '') {
             $errors['email'][] = "Email is required";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors['email'][] = "Invalid email format";
         }
+
 
         // Password validation (granular)
         if ($password === '') {
@@ -73,11 +76,14 @@
 
         // If any errors → return all at once
         if (!empty($errors)) {
+
             http_response_code(422);
+
             echo json_encode([
                 "success" => false,
                 "errors" => $errors
             ]);
+
             exit();
         }
 
@@ -86,6 +92,7 @@
 
         //Avoid an email duplication
         $stmt = $conn->prepare("SELECT id FROM users WHERE email = :email");
+
         $stmt->execute([':email' => $email]);
 
         if ($stmt->fetch()) {
@@ -96,6 +103,7 @@
                 "success" => false,
                 "errors" => $errors
             ]);
+
             exit();
         }
                 
