@@ -1,5 +1,5 @@
 <?php
-
+error_log("BOOTSTRAP HIT: " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI']);
     error_log("BOOTSTRAP LOADED");
 
     header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
