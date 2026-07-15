@@ -36,16 +36,13 @@ error_reporting(E_ALL);
             throw new Exception("Invalid JSON input");
         }
 
-        if (!isset($data->cart)) {
+        if (!isset($data['cart'])) {
             throw new Exception("Cart is missing");
         }
 
+        $delivery = $data['delivery'] ?? [];
+        $cart = $data['cart'];
 
-
-        $delivery = $data->delivery ?? (object)[];
-
-
-        $cart = $data->cart;
 
         if (empty($cart)) {
             throw new Exception("Cart is empty");
@@ -109,16 +106,16 @@ error_reporting(E_ALL);
             'mode' => 'payment',
             'success_url' => 'https://plantfront.onrender.com/success',
             'cancel_url' => 'https://plantfront.onrender.com/cancel',
-            'customer_email' => $delivery->email ?? null,
+            'customer_email' => $delivery->['email'] ?? null,
 
             'metadata' => array_filter([
-                'name' => $delivery->name ?? '',
-                'address' => $delivery->address ?? '',
-                'city' => $delivery->city ?? '',
-                'postal' => $delivery->postal ?? '',
-                'country' => $delivery->country ?? '',
-                'email' => $delivery->email ?? null,
-                'phone' => $delivery->phone ?? '',
+                'name' => $delivery->['name'] ?? '',
+                'address' => $delivery->['address'] ?? '',
+                'city' => $delivery->['city'] ?? '',
+                'postal' => $delivery->['postal'] ?? '',
+                'country' => $delivery->['country'] ?? '',
+                'email' => $delivery->['email'] ?? null,
+                'phone' => $delivery->['phone'] ?? '',
                 'user_id' => $user['id'] ?? ''
             ])
         ];
@@ -134,12 +131,13 @@ error_reporting(E_ALL);
         ]);
 
     } catch (Exception $e) {
-        ob_clean();
-        http_response_code(500);
-        echo json_encode([
-            "error" => "Server error"
-        ]);
-    }
+    ob_clean();
+    http_response_code(500);
+    echo json_encode([
+        "error" => $e->getMessage() // 👈 show real error
+    ]);
+}
+    
 
     exit;
 
