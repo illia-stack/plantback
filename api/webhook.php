@@ -14,19 +14,26 @@
 
     if (!$endpoint_secret) {
         http_response_code(500);
+        
         error_log("Webhook secret missing");
+
         exit();
     }
 
+
     $payload = @file_get_contents('php://input');
+
     $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? '';
 
     try {
+
         $event = \Stripe\Webhook::constructEvent(
             $payload,
             $sig_header,
             $endpoint_secret
         );
+
+
 
         $sessionObj = $event->data->object;
 
@@ -35,13 +42,19 @@
         if ($event->type === 'checkout.session.completed') {
 
             $session = \Stripe\Checkout\Session::retrieve([
+
                 'id' => $sessionObj->id,
+
                 'expand' => ['line_items']
             ]);
 
+
             if ($session->payment_status !== 'paid') {
+
                 error_log("⚠️ Payment not completed");
+
                 http_response_code(200);
+
                 exit();
             }
 
@@ -81,6 +94,7 @@
 
                 // 🔹 Log: Data before DB-Insert
                 error_log("Sale: $name x $quantity");
+
 
                 try {
                     $stmt = $conn->prepare("
@@ -122,11 +136,19 @@
                     ]);
 
                     error_log("✅ Sale inserted: $name ($quantity x $unit_price €)");
+
+
                 } catch (PDOException $e) {
+
                     if ($e->getCode() == 23000) {
+
                         error_log("Duplicate webhook ignored: " . $session->id);
+
+
                     } else {
+
                         error_log("❌ PDO Error");
+
                         throw $e;
                     }
                 }
@@ -135,11 +157,19 @@
 
         http_response_code(200);
 
+
     } catch (\Stripe\Exception\SignatureVerificationException $e) {
+
         http_response_code(400);
+
         error_log("❌ Signature verification failed ");
+
+
     } catch (Exception $e) {
+
         http_response_code(500);
+
         error_log("❌ General error ");
     }
+
 ?>
