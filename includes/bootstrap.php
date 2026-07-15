@@ -1,17 +1,15 @@
 <?php
-error_log("BOOTSTRAP HIT: " . $_SERVER['REQUEST_METHOD'] . " " . $_SERVER['REQUEST_URI']);
-    error_log("BOOTSTRAP LOADED");
+// 🔥 FORCE CORS EARLY
+header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
+header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
+header("Access-Control-Allow-Credentials: true");
 
-    header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
-    header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-    header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
-    header("Access-Control-Allow-Credentials: true");
-
-    // Start the preflight Request
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(200);
-        exit();
-    }
+// 🔴 Handle preflight IMMEDIATELY
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit();
+}
 
 
     //Cookie Settings
