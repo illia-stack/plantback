@@ -35,6 +35,10 @@ require_once __DIR__ . '/config.php';
 
         $data = json_decode($raw, true);
 
+        if (!isset($data['csrf']) || $data['csrf'] !== $_SESSION['csrf_token']) {
+    throw new Exception("Invalid CSRF token");
+}
+
         if (!$data) {
             throw new Exception("Invalid JSON input");
         }
@@ -104,24 +108,24 @@ require_once __DIR__ . '/config.php';
 
         // Give a parameter and create a Stripe Session 
         $sessionParams = [
-            'payment_method_types' => ['card'],
-            'line_items' => $line_items,
-            'mode' => 'payment',
-            'success_url' => 'https://plantfront.onrender.com/success',
-            'cancel_url' => 'https://plantfront.onrender.com/cancel',
-            'customer_email' => $delivery->['email'] ?? null,
+    'payment_method_types' => ['card'],
+    'line_items' => $line_items,
+    'mode' => 'payment',
+    'success_url' => 'https://plantfront.onrender.com/success',
+    'cancel_url' => 'https://plantfront.onrender.com/cancel',
+    'customer_email' => $delivery['email'] ?? null,
 
-            'metadata' => array_filter([
-                'name' => $delivery->['name'] ?? '',
-                'address' => $delivery->['address'] ?? '',
-                'city' => $delivery->['city'] ?? '',
-                'postal' => $delivery->['postal'] ?? '',
-                'country' => $delivery->['country'] ?? '',
-                'email' => $delivery->['email'] ?? null,
-                'phone' => $delivery->['phone'] ?? '',
-                'user_id' => $user['id'] ?? ''
-            ])
-        ];
+    'metadata' => array_filter([
+        'name' => $delivery['name'] ?? '',
+        'address' => $delivery['address'] ?? '',
+        'city' => $delivery['city'] ?? '',
+        'postal' => $delivery['postal'] ?? '',
+        'country' => $delivery['country'] ?? '',
+        'email' => $delivery['email'] ?? null,
+        'phone' => $delivery['phone'] ?? '',
+        'user_id' => $user['id'] ?? ''
+    ])
+];
 
         
 
