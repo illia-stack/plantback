@@ -1,4 +1,5 @@
 <?php
+
     require_once __DIR__ . "/../includes/bootstrap.php";
     require_once __DIR__ . "/../includes/db.php";
 
@@ -27,8 +28,10 @@
     }
 
     try {
+
         rate_limit('login', 10, 60);
-        //validate_csrf();
+        
+        validate_csrf();
             
         $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);
@@ -61,13 +64,14 @@
         ]);
         
 
-    } catch (Throwable $e) {
-        error_log($e->getMessage()); 
-
+    } catch  {
+        
         http_response_code(500);
+        
         echo json_encode([
             "success" => false,
             "message" => "Server error"
         ]);
     }
+
 ?>
