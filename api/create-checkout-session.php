@@ -1,20 +1,9 @@
 <?php
 
-// ✅ CORS FIRST
-header("Access-Control-Allow-Origin: https://plantfront.onrender.com");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, X-CSRF-Token");
-header("Access-Control-Allow-Credentials: true");
-header("Content-Type: application/json");
-
-// ✅ Handle preflight
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
-}
 
 // ✅ THEN includes  
 require_once __DIR__ . '/../includes/bootstrap.php';
+
 require_once __DIR__ . '/config.php';
 
     // 🔴 Output Buffer prevents a wrong JSON
@@ -35,10 +24,7 @@ require_once __DIR__ . '/config.php';
 
         $data = json_decode($raw, true);
 
-        if (!isset($data['csrf']) || $data['csrf'] !== $_SESSION['csrf_token']) {
-    throw new Exception("Invalid CSRF token");
-}
-
+  
         if (!$data) {
             throw new Exception("Invalid JSON input");
         }
