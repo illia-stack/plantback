@@ -124,7 +124,7 @@ require_once __DIR__ . '/config.php';
         'email' => $delivery['email'] ?? null,
         'phone' => $delivery['phone'] ?? '',
         'user_id' => $user['id'] ?? ''
-    ])
+    ])   
 ];
 
         
