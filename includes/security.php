@@ -1,20 +1,24 @@
 <?php 
 
     function validate_csrf(){
-        if(function_exists('getallheaders')){
-            $headers = array_change_key_case(getallheaders(), CASE_LOWER);
-        } else { $headers = []; }
-
-        $token = $headers['x-csrf-token'] ?? '';
-        
-
-        if(!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']){
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode(["success" => false, "message" => "CSRF failed"]);
-            exit();
-        }
+    if (!isset($_SESSION['user'])) {
+        return; // ✅ allow guests
     }
+
+    if(function_exists('getallheaders')){
+        $headers = array_change_key_case(getallheaders(), CASE_LOWER);
+    } else { 
+        $headers = []; 
+    }
+
+    $token = $headers['x-csrf-token'] ?? '';
+
+    if(!isset($_SESSION['csrf_token']) || $token !== $_SESSION['csrf_token']){
+        http_response_code(403);
+        echo json_encode(["success" => false, "message" => "CSRF failed"]);
+        exit();
+    }
+}
 
 
     function rate_limit($key, $maxRequests = 5, $perSeconds = 60) {

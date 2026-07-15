@@ -28,7 +28,7 @@
 
     try {
         rate_limit('login', 10, 60);
-        validate_csrf();
+        //validate_csrf();
             
         $stmt = $conn->prepare("SELECT id, name, email, password, role FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);

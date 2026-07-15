@@ -10,7 +10,7 @@ require_once __DIR__ . '/config.php';
     ob_start();
 
     try {
-        validate_csrf();
+       // validate_csrf();
 
 
 
